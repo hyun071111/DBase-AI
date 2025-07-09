@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 분석 API 테스트 (파일명 전송 방식)</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            line-height: 1.6; 
+            padding: 20px; 
+            max-width: 800px; 
+            margin: auto; 
+            background-color: #f8f9fa; 
+        }
+        .container { 
+            background-color: #ffffff; 
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+        h1, h2 { 
+            color: #343a40; 
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+        form { 
+            margin-bottom: 20px; 
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #495057;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .description {
+            font-size: 14px;
+            color: #6c757d;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        button { 
+            background-color: #dc3545; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            margin-top: 15px;
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: bold;
+            transition: background-color 0.2s; 
+        }
+        button:hover { 
+            background-color: #c82333; 
+        }
+        #response-area { 
+            background-color: #212529; 
+            color: #f8f9fa;
+            padding: 15px; 
+            border-radius: 8px; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            font-family: "Courier New", Courier, monospace; 
+            min-height: 100px;
+        }
+        .success { border-left: 5px solid #28a745; }
+        .error { border-left: 5px solid #dc3545; }
+        .loading { border-left: 5px solid #ffc107; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>PDF 분석 API 테스트</h1>
+        <p>이 페이지는 <code>http://localhost:3000/api/process-pdf</code> 엔드포인트로 <strong>파일 이름</strong>을 전송하여 API를 테스트합니다.</p>
+
+        <form id="request-form">
+            <label for="filename-input">처리할 PDF 파일 이름:</label>
+            <input type="text" id="filename-input" placeholder="예: company_A.pdf" required>
+            <p class="description">
+                <strong>주의:</strong> 여기에 입력하는 파일은 API 서버의 <code>DBase/DBase-backend/uploads/</code> 폴더 안에 미리 존재해야 합니다.
+            </p>
+            <button type="submit">분석 요청 보내기</button>
+        </form>
+
+        <h2>API 응답 결과</h2>
+        <pre id="response-area">여기에 서버의 응답이 표시됩니다.</pre>
+    </div>
+
+    <script>
+        document.getElementById('request-form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // 폼의 기본 동작(페이지 새로고침) 방지
+
+            const filenameInput = document.getElementById('filename-input');
+            const responseArea = document.getElementById('response-area');
+            const filename = filenameInput.value.trim();
+
+            if (!filename) {
+                responseArea.textContent = '오류: 파일 이름을 입력하세요.';
+                responseArea.className = 'error';
+                return;
+            }
+
+            // 로딩 상태 표시
+            responseArea.textContent = `서버에 '${filename}' 파일 처리를 요청하는 중...`;
+            responseArea.className = 'loading';
+
+            try {
+                // API 서버로 POST 요청 보내기
+                const response = await fetch('http://localhost:3000/api/process-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json' // 요청 본문이 JSON 형식임을 명시
+                    },
+                    body: JSON.stringify({ filename: filename }) // JavaScript 객체를 JSON 문자열로 변환
+                });
+
+                // 서버로부터 받은 응답을 JSON으로 파싱
+                const data = await response.json();
+
+                // 결과를 예쁘게 포맷팅하여 화면에 표시
+                responseArea.textContent = JSON.stringify(data, null, 2);
+
+                // 응답 상태 코드에 따라 결과창 스타일 변경
+                if (response.ok) {
+                    responseArea.className = 'success';
+                } else {
+                    responseArea.className = 'error';
+                }
+
+            } catch (error) {
+                // 네트워크 오류 등 fetch 과정에서 문제 발생 시
+                responseArea.textContent = '오류: 서버에 연결할 수 없습니다. API 서버(app.py)가 실행 중인지, 포트(3000)가 맞는지 확인하세요.\n\n' + error;
+                responseArea.className = 'error';
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+flask>=2.2.5
+requests>=2.31.0
+PyMuPDF>=1.22.5
+transformers>=4.29.2
+torch>=2.0.1
+accelerate>=0.20.3
+sentencepiece>=0.1.99
+Werkzeug>=2.2.5
+flask_sqlalchemy
+psycopg2-binary
+Flask-Migrate
+Flask-Cors
+dotenv
+
+
+# PyTorch 설치 가이드 (CUDA 사용 시):
+# pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
