@@ -91,7 +91,6 @@ with app.app_context():
         job_description='테스트',
         qualifications='서울디지텍고등학교 재학생',
         working_hours='9-6',
-        insurance='국민연금, 고용보험, 산재보험, 건강보험',
         work_type='정규직',
         required_documents='이력서, 자기소개서, 포트폴리오',
         internship_pay='시급 5000',

@@ -71,3 +71,8 @@ PyTorch를 GPU 버전으로 설치하면 LLM 추론 속도가 크게 향상됩�
 ```bash
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
+
+### 데이터베이스 초기화 및 생성 방법
+```bash
+python init_db.py
+```
