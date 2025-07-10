@@ -2,8 +2,6 @@ import os
 from app import create_app
 from models import db, User, UserCompany, Token, Experience, CompanyInformation, JobInformation, ApplicationStatus, PresentCompany
 
-# 애플리케이션 팩토리를 사용하여 app 인스턴스 생성
-# 이렇게 하면 app의 설정(예: DB URI)을 로드할 수 있습니다.
 app = create_app()
 
 def init_database():
@@ -11,12 +9,10 @@ def init_database():
     with app.app_context():
         print("데이터베이스 초기화를 시작합니다...")
         
-        # 경고: 이 작업은 기존의 모든 데이터를 삭제합니다!
         print("기존의 모든 테이블을 삭제합니다.")
         db.drop_all()
         
         print("새로운 테이블을 생성합니다.")
-        # 임포트된 모든 모델 클래스를 기반으로 테이블을 생성합니다.
         db.create_all()
         
         print("데이터베이스 초기화가 완료되었습니다.")
