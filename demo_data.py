@@ -1,5 +1,5 @@
 from flask import Flask
-from models import db, User, UserCompany, Token, Experience, CompanyInformation, JobInformation, ApplicationStatus, PresentCompany
+from models import db, User, UserCompany, Experience, CompanyInformation, JobInformation, ApplicationStatus, PresentCompany
 from datetime import date
 from dotenv import load_dotenv
 import os
@@ -53,8 +53,6 @@ with app.app_context():
         work_end_date=None
     )
 
-    token = Token(user_id=0, refresh_token='0000')
-
     # Experiences
     exp1 = Experience(
         id=0,
@@ -107,12 +105,11 @@ with app.app_context():
 
     present_company = PresentCompany(
         id=0,
-        company_id=0,
-        address='서울시 용산구 회나무로12길 27'
+        company_id=company.id,
     )
 
     db.session.add_all([
-        company, user, user_company, token,
+        company, user, user_company,
         exp1, exp2, exp3,
         job_info, application, present_company
     ])

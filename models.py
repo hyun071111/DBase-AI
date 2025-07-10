@@ -15,7 +15,6 @@ class User(db.Model):
     skills = db.Column(db.Text)
 
     company = db.relationship("UserCompany", backref="user", uselist=False, cascade="all, delete-orphan")
-    token = db.relationship("Token", backref="user", uselist=False, cascade="all, delete-orphan")
     experiences = db.relationship("Experience", backref="user", cascade="all, delete-orphan")
     applications = db.relationship("ApplicationStatus", backref="user", cascade="all, delete-orphan")
 
