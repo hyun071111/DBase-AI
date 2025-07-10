@@ -1,17 +1,18 @@
 import os
-import fitz
+import pymupdf as fitz
 import requests
 import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 from dotenv import load_dotenv
+from datetime import datetime
 
 # .env 파일에서 환경 변수 로드
 load_dotenv()
 
 # models.py에서 db 객체 임포트
-from models import db, Company, JobPosting
+from models import db, CompanyInformation, JobInformation
 
 # Optional: Hugging Face Transformers 라이브러리 임포트
 torch_import = True
@@ -37,7 +38,7 @@ SERPER_URL = "https://google.serper.dev/search"
 SCRIPT_PATH = os.path.abspath(__file__)
 AI_DIR = os.path.dirname(SCRIPT_PATH)
 DBASE_ROOT_DIR = os.path.dirname(AI_DIR)
-UPLOAD_BASE_DIR = os.path.join(DBASE_ROOT_DIR, 'DBase-backend', 'uploads')
+UPLOAD_JOB_INFO_ROOT = os.path.join(DBASE_ROOT_DIR, 'DBase-backend', 'uploads', 'jobInformation')
 
 
 # ---------- 유틸리티 함수 (변경 없음) ----------
@@ -65,7 +66,8 @@ def extract_info(text):
         'upte': r'업태\s*([^\n]+)', 'jongmok': r'종목\s*([^\n]+)', 'num_employees': r'상시근로자\s*수\s*(\d+)',
         'main_business': r'주요\s*사업\s*내용\s*([\s\S]+?)(?:홈페이지|대표자명)', 'website': r'홈페이지\s*(https?://\S+)',
         'location': r'소재지\s*([\s\S]+?)\s*대표자명', 'recruitment_year': r'요청일:\s*(\d{4})년',
-        'application_deadline': r'요청일:\s*([^\n]+)', 'job_category': r'모집직종\s*([^\n]+)',
+        'application_deadline': r'요청일:\s*([^\n]+)', 
+        'job_category': r'모집직종\s*([^\n]+)',
         'positions': r'모집인원\s*(\d+)\s*명',
         'job_description': r'직무내용\s*\(구체적\)\s*([\s\S]+?)\s*근무\s*형태',
         'qualifications': r'자격요건\s*\(우대자격\)\s*([\s\S]+?)\s*근무\s*시간',
@@ -78,10 +80,17 @@ def extract_info(text):
     for key, pattern in patterns.items():
         match = re.search(pattern, text, re.DOTALL)
         info[key] = match.group(1).strip().replace('\n', ' ') if match else None
-    
+
     info['business_type'] = f"{info['upte']} / {info['jongmok']}" if info.get('upte') and info.get('jongmok') else (info.get('upte') or info.get('jongmok'))
-    if info.get('num_employees'): info['num_employees'] = int(info['num_employees'])
     
+    # PDF에서 추출한 인원 수가 문자열일 수 있으므로 정수로 변환 시도
+    if info.get('num_employees'):
+        try:
+            info['num_employees'] = int(info['num_employees'])
+        except (ValueError, TypeError):
+            info['num_employees'] = None
+
+
     return info
 
 
@@ -89,15 +98,13 @@ def extract_info(text):
 def create_app():
     """Flask 애플리케이션 인스턴스를 생성하고 설정합니다."""
     app = Flask(__name__)
-    
+
     # 1. 설정
     if not DB_URL or not SERPER_KEY:
         raise ValueError("필수 환경 변수(DATABASE_URL, SERPER_API_KEY)가 .env 파일에 설정되지 않았습니다.")
-        
+
     app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # 모든 라우트에 대해 CORS를 허용하여 API 테스트를 용이하게 함
     CORS(app)
 
     # 2. 확장 초기화
@@ -124,35 +131,47 @@ def create_app():
             llm_pipeline = None
 
     # 4. API 라우트 등록
-    # 함수 내에서 라우트를 정의하거나 블루프린트를 등록합니다.
     @app.route('/api/process-pdf', methods=['POST'])
     def process_pdf_api():
-        # 1. 요청 유효성 검사
         if not request.is_json:
             return jsonify({"status": "error", "message": "요청 본문은 JSON 형식이어야 합니다."}), 400
+        
         data = request.get_json()
-        filename = data.get('filename')
-        if not filename:
-            return jsonify({"status": "error", "message": "JSON 본문에 'filename' 키가 없습니다."}), 400
+        folder_id = data.get('folderId')
+        file_name = data.get('fileName')
 
-        # 2. 파일 경로 확인
-        file_path = os.path.join(UPLOAD_BASE_DIR, filename)
+        if not folder_id:
+            return jsonify({"status": "error", "message": "JSON 본문에 'folderId' 키가 없습니다."}), 400
+        if not file_name:
+            return jsonify({"status": "error", "message": "JSON 본문에 'fileName' 키가 없습니다."}), 400
+            
+        # os.path.join을 사용하여 안전하고 명확하게 전체 파일 경로를 구성합니다.
+        # UPLOAD_JOB_INFO_ROOT가 './DBase-backend/uploads/jobInformation'와 같은 경로를 가리킵니다.
+        # 여기에 전달받은 folder_id와 file_name을 순서대로 합쳐줍니다.
+        # folder_id를 문자열로 변환하여 예기치 않은 타입 오류를 방지합니다.
+        file_path = os.path.join(UPLOAD_JOB_INFO_ROOT, str(folder_id), file_name)
+        
+        # (디버깅용) 실제 구성된 경로를 서버 로그에 출력하여 확인할 수 있습니다.
+        print(f"--- INFO: Accessing file at path: {file_path}")
+
         if not os.path.exists(file_path):
+            # 파일이 존재하지 않을 경우, 계산된 경로를 에러 메시지에 포함하여 디버깅을 돕습니다.
             return jsonify({"status": "error", "message": f"지정된 경로에 파일이 없습니다: {file_path}"}), 404
 
         try:
-            # 3. PDF 처리 및 정보 추출
+            # --- 이후 로직은 기존과 동일 ---
             text = extract_text(file_path)
             if not text.strip():
-                return jsonify({"status": "error", "message": f"'{filename}'에서 텍스트를 추출할 수 없습니다."}), 500
+                return jsonify({"status": "error", "message": f"'{file_name}'에서 텍스트를 추출할 수 없습니다."}), 500
 
             info = extract_info(text)
             if not info.get('company_name'):
                 return jsonify({"status": "error", "message": "PDF에서 회사명을 추출할 수 없습니다."}), 422
 
-            # 4. 외부 검색 및 AI 분석
             search_results = google_search(info.get('company_name'))
-            info['search_summary'] = "\n\n".join(search_results[:5]) if search_results else "검색 결과 없음"
+            search_summary = "\n\n".join(search_results[:5]) if search_results else "검색 결과 없음"
+            
+            ai_analysis_result = "LLM 미설정 또는 회사명 누락으로 AI 분석을 건너뜁니다."
             if llm_pipeline and info.get('company_name'):
                 llm_prompt = (
                     f"다음 정보를 바탕으로 '{info['company_name']}'의 기업 분석 보고서를 작성해줘. "
@@ -161,58 +180,71 @@ def create_app():
                     f"## 추출 정보:\n- 주요 사업: {info.get('main_business', 'N/A')}\n"
                     f"- 모집 직종: {info.get('job_category', 'N/A')}\n"
                     f"- 필요 기술/자격: {info.get('qualifications', 'N/A')}\n\n"
-                    f"## 웹 검색 결과 요약:\n{info['search_summary']}\n\n"
+                    f"## 웹 검색 결과 요약:\n{search_summary}\n\n"
                     "## 기업 분석 보고서:"
                 )
                 ai_result = llm_pipeline(llm_prompt, return_full_text=False)
-                info['ai_analysis'] = ai_result[0]['generated_text'].strip()
-            else:
-                info['ai_analysis'] = "LLM 미설정 또는 회사명 누락으로 AI 분석을 건너뜁니다."
+                ai_analysis_result = ai_result[0]['generated_text'].strip()
 
-            # 5. 데이터베이스 트랜잭션 및 응답 반환
-            company = Company.query.filter_by(company_name=info['company_name']).first()
+            company = CompanyInformation.query.filter_by(company_name=info['company_name']).first()
             if not company:
-                company = Company(company_name=info['company_name'])
+                company = CompanyInformation(company_name=info['company_name'])
                 db.session.add(company)
+
+            try:
+                company.year = int(info.get('recruitment_year')) if info.get('recruitment_year') else None
+            except (ValueError, TypeError):
+                company.year = None
+                
+            try:
+                company.establishment_year = int(info.get('established').split('.')[0]) if info.get('established') else None
+            except (ValueError, TypeError, IndexError, AttributeError):
+                company.establishment_year = None
             
-            # 회사 정보 업데이트 (가독성을 위해 여러 줄로 분리)
-            company.established = info.get('established')
+            deadline_str = info.get('application_deadline')
+            if deadline_str:
+                try:
+                    clean_deadline_str = deadline_str.replace(" ", "")
+                    company.deadline = datetime.strptime(clean_deadline_str, '%Y년%m월%d일').date()
+                except ValueError:
+                    company.deadline = None
+            else:
+                company.deadline = None
+            
             company.business_type = info.get('business_type')
-            company.num_employees = info.get('num_employees')
+            company.employee_count = info.get('num_employees')
             company.main_business = info.get('main_business')
             company.website = info.get('website')
-            company.location = info.get('location')
-            company.search_summary = info.get('search_summary')
-            company.ai_analysis = info.get('ai_analysis')
+            company.address = info.get('location')
+            company.ai_analysis = ai_analysis_result
             
-            # 채용 공고 정보 추가
-            job_posting = JobPosting(
+            # JobInformation 객체에 데이터 매핑
+            job_posting = JobInformation(
                 company=company,
-                recruitment_year=info.get('recruitment_year'),
-                application_deadline=info.get('application_deadline'),
-                job_category=info.get('job_category'),
-                positions=info.get('positions'),
+                job_title=info.get('job_category'),
+                recruitment_count=info.get('positions'),
                 job_description=info.get('job_description'),
                 qualifications=info.get('qualifications'),
-                work_hours=info.get('work_hours'),
-                employment_type=info.get('employment_type'),
+                working_hours=info.get('work_hours'),
+                work_type=info.get('employment_type'),
                 required_documents=info.get('required_documents'),
-                intern_stipend=info.get('intern_stipend'),
+                internship_pay=info.get('intern_stipend'),
                 salary=info.get('salary'),
-                other_requirements=info.get('other_requirements')
+                additional_requirements=info.get('other_requirements')
             )
             db.session.add(job_posting)
             db.session.commit()
 
             return jsonify({
                 "status": "success",
-                "message": f"'{filename}' 파일이 성공적으로 처리되어 데이터베이스에 저장되었습니다.",
-                "data": { "company_id": company.id, "job_posting_id": job_posting.id }
+                "message": f"'{file_name}' 파일이 성공적으로 처리되어 데이터베이스에 저장되었습니다.",
             }), 201
 
         except Exception as e:
             db.session.rollback()
-            print(f"--- ERROR: '{filename}' 처리 중 예외 발생: {e}")
+            print(f"--- ERROR: '{file_name}' 처리 중 예외 발생: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"status": "error", "message": f"예상치 못한 오류가 발생했습니다: {str(e)}"}), 500
 
     return app
