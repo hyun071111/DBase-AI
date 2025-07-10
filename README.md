@@ -62,6 +62,9 @@ source venv/bin/activate
 
 # 필수 패키지 설치
 pip install -r requirements.txt
+
+# 안될경우
+python -X utf8=1 -m pip install -r requirements.txt
 ```
 💡 GPU(CUDA) 사용 시:
 PyTorch를 GPU 버전으로 설치하면 LLM 추론 속도가 크게 향상됩니다. 아래 가이드를 참고하여 설치하세요.
