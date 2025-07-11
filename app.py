@@ -34,7 +34,7 @@ SERPER_URL = "https://google.serper.dev/search"
 SCRIPT_PATH = os.path.abspath(__file__)
 AI_DIR = os.path.dirname(SCRIPT_PATH)
 DBASE_ROOT_DIR = os.path.dirname(AI_DIR)
-UPLOAD_JOB_INFO_ROOT = os.path.join(DBASE_ROOT_DIR, 'DBase-backend', 'uploads', 'jobInformation')
+UPLOAD_JOB_INFO_ROOT = os.path.join(DBASE_ROOT_DIR, 'DBase-backend', 'uploads')
 
 
 # ---------- 유틸리티 함수 ----------
