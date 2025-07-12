@@ -67,7 +67,6 @@ class JobInformation(db.Model):
     qualifications = db.Column(db.Text)
     working_hours = db.Column(db.Text)
     work_type = db.Column(db.Text)
-    required_documents = db.Column(db.Text) 
     internship_pay = db.Column(db.String(100))
     salary = db.Column(db.String(100))
     additional_requirements = db.Column(db.Text)
@@ -80,8 +79,8 @@ class ApplicationStatus(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     job_id = db.Column(db.Integer, db.ForeignKey('job_information.id'))
     status = db.Column(db.String(50), default='미확인')
-    feedback = db.Column(db.Text, nullable=True)  # Fixed typo from 'feedbac'
-
+    feedback = db.Column(db.Text, nullable=True)  
+    
 class PresentCompany(db.Model):
     __tablename__ = 'present_company'
     id = db.Column(db.Integer, primary_key=True)

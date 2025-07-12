@@ -99,7 +99,6 @@ with app.app_context():
         qualifications="서울디지텍고등학교 재학생",
         working_hours="9-6",
         work_type="정규직",
-        required_documents="이력서, 자기소개서, 포트폴리오",
         internship_pay="시급 5000",
         salary="연봉 2500만",
         additional_requirements="테스트입니다",
