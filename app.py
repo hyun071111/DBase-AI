@@ -164,22 +164,21 @@ def create_app():
             )
 
         data = request.get_json()
-        folder_id = data.get("folderId")
         file_name = data.get("fileName")
 
         print(
-            f"[{timestamp}] [INFO] 요청 데이터: folderId='{folder_id}', fileName='{file_name}'"
+            f"[{timestamp}] [INFO] 요청 데이터: fileName='{file_name}'"
         )
 
-        if not folder_id or not file_name:
+        if not file_name:
             return (
                 jsonify(
-                    {"status": "error", "message": "folderId와 fileName은 필수입니다."}
+                    {"status": "error", "message": "fileName은 필수입니다."}
                 ),
                 400,
             )
 
-        file_path = os.path.join(UPLOAD_JOB_INFO_ROOT, str(folder_id), file_name)
+        file_path = os.path.join(UPLOAD_JOB_INFO_ROOT, file_name)
         print(f"[{timestamp}] [INFO] 접근할 파일 경로: {file_path}")
 
         if not os.path.exists(file_path):
