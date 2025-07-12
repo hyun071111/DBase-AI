@@ -45,13 +45,13 @@ def extract_text(path):
     return "".join(page.get_text() for page in fitz.open(path))
 
 
-def google_search(query):
+def google_search(query, num=5):
     """주어진 쿼리로 Google 검색을 수행하고 결과를 반환합니다."""
     if not query or not SERPER_KEY:
         return []
     headers = {"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"}
     try:
-        r = requests.post(SERPER_URL, json={"q": query}, headers=headers)
+        r = requests.post(SERPER_URL, json={"q": query, "num": num}, headers=headers)
         r.raise_for_status()
         return [
             f"제목: {i.get('title', 'N/A')}\n링크: {i.get('link', 'N/A')}\n내용: {i.get('snippet', '내용 없음')}"
@@ -137,9 +137,9 @@ def create_app():
                 "text-generation",
                 model=model,
                 tokenizer=tokenizer,
-                max_new_tokens=400,
+                max_new_tokens=1024,
                 do_sample=True,
-                temperature=0.6,
+                temperature=0.5,
             )
             print("--- INFO: LLM 파이프라인 로딩 성공.")
         except Exception as e:
@@ -229,8 +229,9 @@ def create_app():
             )
 
             ai_analysis_result = "LLM 미설정 또는 회사명 누락으로 AI 분석을 건너뜁니다."
+            print(info.get("company_name"))
             if llm_pipeline and info.get("company_name"):
-                llm_prompt = f"다음 정보를 바탕으로 '{info['company_name']}'의 기업 분석 보고서를 작성해줘. 회사의 주력 사업, 사용하는 기술, 성장 가능성에 초점을 맞춰 전문가 관점에서 간결하게 400자 내외로 요약해줘. 불필요한 인사말이나 서론은 제외하고 핵심 내용만 포함해줘.\n\n## 추출 정보:\n- 주요 사업: {info.get('main_business', 'N/A')}\n- 모집 직종: {info.get('job_category', 'N/A')}\n- 필요 기술/자격: {info.get('qualifications', 'N/A')}\n\n## 웹 검색 결과 요약:\n{search_summary}\n\n## 기업 분석 보고서:"
+                llm_prompt = f"다음 정보를 바탕으로 '{info['company_name']}'의 기업 분석 보고서를 작성해줘. 회사의 주력 사업, 사용하는 기술, 성장 가능성에 초점을 맞춰 전문가 관점에서 간결하게 요약해줘(200자 내외). 불필요한 인사말이나 **마크다운 문법** 제외하고 핵심 내용만 포함해줘.\n\n## 웹 검색 결과 요약:\n{search_summary}\n\n## 기업 분석 보고서:"
                 ai_result = llm_pipeline(llm_prompt, return_full_text=False)
                 ai_analysis_result = ai_result[0]["generated_text"].strip()
 
