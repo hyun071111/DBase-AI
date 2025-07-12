@@ -39,13 +39,13 @@ def extract_text(path):
     return "".join(page.get_text() for page in fitz.open(path))
 
 
-def google_search(query):
+def google_search(query, num=5):
     """주어진 쿼리로 Google 검색을 수행하고 결과를 반환합니다."""
     if not query or not SERPER_KEY:
         return []
     headers = {"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"}
     try:
-        r = requests.post(SERPER_URL, json={"q": query}, headers=headers)
+        r = requests.post(SERPER_URL, json={"q": query, "num": num}, headers=headers)
         r.raise_for_status()
         return [
             f"제목: {i.get('title', 'N/A')}\n링크: {i.get('link', 'N/A')}\n내용: {i.get('snippet', '내용 없음')}"
