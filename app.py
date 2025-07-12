@@ -8,8 +8,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 from datetime import datetime
-
-import google.generativeai as genai
+from openai import OpenAI  
 
 load_dotenv()
 
@@ -17,12 +16,11 @@ from models import db, CompanyInformation, JobInformation
 
 # ---------- 전역 확장 및 설정 변수 ----------
 migrate = Migrate()
-gemini_model = None
+openai_client = None
 
-# 환경 변수에서 설정 값 로드
 DB_URL = os.getenv("DATABASE_URL")
 SERPER_KEY = os.getenv("SERPER_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SERPER_URL = "https://google.serper.dev/search"
 
 SCRIPT_PATH = os.path.abspath(__file__)
@@ -39,13 +37,13 @@ def extract_text(path):
     return "".join(page.get_text() for page in fitz.open(path))
 
 
-def google_search(query):
+def google_search(query, num=5):
     """주어진 쿼리로 Google 검색을 수행하고 결과를 반환합니다."""
     if not query or not SERPER_KEY:
         return []
     headers = {"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"}
     try:
-        r = requests.post(SERPER_URL, json={"q": query}, headers=headers)
+        r = requests.post(SERPER_URL, json={"q": query, "num": num}, headers=headers)
         r.raise_for_status()
         return [
             f"제목: {i.get('title', 'N/A')}\n링크: {i.get('link', 'N/A')}\n내용: {i.get('snippet', '내용 없음')}"
@@ -103,9 +101,9 @@ def create_app():
     """Flask 애플리케이션 인스턴스를 생성하고 설정합니다."""
     app = Flask(__name__)
 
-    if not DB_URL or not SERPER_KEY or not GEMINI_API_KEY:
+    if not DB_URL or not SERPER_KEY or not OPENAI_API_KEY:
         raise ValueError(
-            "필수 환경 변수(DATABASE_URL, SERPER_API_KEY, GEMINI_API_KEY)가 .env 파일에 설정되지 않았습니다."
+            "필수 환경 변수(DATABASE_URL, SERPER_API_KEY, OPENAI_API_KEY)가 .env 파일에 설정되지 않았습니다."
         )
 
     app.config["SQLALCHEMY_DATABASE_URI"] = DB_URL
@@ -115,14 +113,13 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
-    global gemini_model
+    global openai_client
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel("gemini-1.5-flash-latest")
-        print("--- INFO: Gemini 모델 설정 성공.")
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        print("--- INFO: OpenAI 클라이언트 설정 성공.")
     except Exception as e:
-        print(f"--- ERROR: Gemini 모델 설정 실패: {e}")
-        gemini_model = None
+        print(f"--- ERROR: OpenAI 클라이언트 설정 실패: {e}")
+        openai_client = None
 
     @app.route("/api/process-pdf", methods=["POST"])
     def process_pdf_api():
@@ -203,31 +200,36 @@ def create_app():
 
             search_results = google_search(info.get("company_name"))
             search_summary = (
-                "\n\n".join(search_results[:5]) if search_results else "검색 결과 없음"
+                "\n\n".join(search_results) if search_results else "검색 결과 없음"
             )
-
+            
             ai_analysis_result = (
-                "Gemini 미설정 또는 회사명 누락으로 AI 분석을 건너뜁니다."
+                "OpenAI 미설정 또는 회사명 누락으로 AI 분석을 건너뜁니다."
             )
 
-            if gemini_model and info.get("company_name"):
-                llm_prompt = f"다음 정보를 바탕으로 '{info['company_name']}'의 기업 분석 보고서를 작성해줘. 회사의 주력 사업, 사용하는 기술, 성장 가능성에 초점을 맞춰 전문가 관점에서 간결하게 400자 내외로 요약해줘. 불필요한 인사말이나 마크다운 문법 제외하고 핵심 내용만 포함해줘.\n\n## 추출 정보:\n- 주요 사업: {info.get('main_business', 'N/A')}\n- 모집 직종: {info.get('job_category', 'N/A')}\n- 필요 기술/자격: {info.get('qualifications', 'N/A')}\n\n## 웹 검색 결과 요약:\n{search_summary}\n\n## 기업 분석 보고서:"
+            if openai_client and info.get("company_name"):
+                system_prompt = "당신은 기업의 기술 스택과 성장 가능성을 분석하는 전문 애널리스트입니다. 제공된 정보를 바탕으로 간결하고 핵심적인 내용만 담은 분석 보고서를 작성합니다."
+                user_prompt = f"다음 정보를 바탕으로 '{info['company_name']}'의 기업 분석 보고서를 작성해줘. 회사의 주력 사업, 사용하는 기술, 성장 가능성에 초점을 맞춰 전문가 관점에서 간결하게 300자 내외로 요약해줘. 불필요한 인사말이나 마크다운 문법 제외하고 핵심 내용만 포함해줘.## 웹 검색 결과 요약:\n{search_summary}\n\n## 기업 분석 보고서:"
+                
                 try:
-                    generation_config = genai.types.GenerationConfig(
-                        temperature=0.6, max_output_tokens=400
+                    response = openai_client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        temperature=0.6,
+                        max_tokens=300  
                     )
-                    response = gemini_model.generate_content(
-                        llm_prompt, generation_config=generation_config
-                    )
-                    ai_analysis_result = response.text.strip()
+                    ai_analysis_result = response.choices[0].message.content.strip()
                 except Exception as e:
-                    print(f"--- ERROR: Gemini API 호출 실패: {e}")
-                    ai_analysis_result = "Gemini API 호출 중 오류가 발생했습니다."
+                    print(f"--- ERROR: OpenAI API 호출 실패: {e}")
+                    ai_analysis_result = "OpenAI API 호출 중 오류가 발생했습니다."
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"[{timestamp}] --- [DEBUG] AI 분석 결과 ---")
+            print(f"[{timestamp}] --- [DEBUG] AI 분석 결과 (GPT-4) ---")
             print(ai_analysis_result)
-            print(f"[{timestamp}] ----------------------------")
+            print(f"[{timestamp}] ------------------------------------")
 
             company = CompanyInformation.query.filter_by(
                 company_name=info["company_name"]
