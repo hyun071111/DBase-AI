@@ -30,7 +30,7 @@ with app.app_context():
         id=0,
         year=2025,
         company_name="테스트 회사",
-        deadline="2025-07-10",  # Changed to string format
+        deadline="2025-07-10",
         establishment_year=2025,
         business_type="소프트웨어 개발업",
         employee_count=5,
@@ -39,57 +39,7 @@ with app.app_context():
         address="서울시 용산구 회나무로12길 27",
         ai_analysis="회사 테스트입니다.",
     )
-
-    # User
-    user = User(
-        id=0,
-        name="테스트",
-        email="sdh230000@sdh.hs.kr",
-        phone_number="010-0000-0000",
-        address="서울시 용산구",
-        category="학생",
-        affiliation="3학년 3반",
-        skills="python, javascript, linux",
-        created_at=int(time.time() * 1000),  # Current timestamp in milliseconds
-    )
-
-    user_company = UserCompany(
-        id=0,
-        user_id=0,
-        employment_status="취업 완료",
-        desired_position="백엔드 개발자",
-        company_id=0,
-        work_start_date=date(2025, 9, 1),
-        work_end_date=None,
-    )
-
-    exp1 = Experience(
-        id=0,
-        user_id=0,
-        type="project",
-        name="프로젝트 테스트",
-        description="테스트",
-        skills="react, nestjs, flask",
-        url="http://127.0.0.1",
-    )
-    exp2 = Experience(
-        id=1,
-        user_id=0,
-        type="experience",
-        date=date(2025, 7, 10),
-        name="서울디지텍고 해커톤",
-        description="테스트",
-    )
-    exp3 = Experience(
-        id=2,
-        user_id=0,
-        type="award",
-        date=date(2025, 7, 10),
-        name="서울디지텍고 해커톤 - 대상",
-        description="서울디지텍고등학교",
-    )
-
-    # JobInformation
+    
     job_info = JobInformation(
         id=0,
         company_id=0,
@@ -104,21 +54,74 @@ with app.app_context():
         additional_requirements="테스트입니다",
     )
 
+
     application = ApplicationStatus(id=0, user_id=0, job_id=0, status="미확인")
 
+    # User
+    user = User(
+        id=0,
+        name="테스트",
+        email="sdh230000@sdh.hs.kr",
+        phone_number="010-0000-0000",
+        address="서울시 용산구",
+        category="학생",
+        affiliation="3학년 3반",
+        skills="python, javascript, linux",
+        created_at=int(time.time() * 1000),
+    )
+    
     present_company = PresentCompany(
         id=0,
         company_id=company.id,
     )
+
+
+    user_company = UserCompany(
+        id=0,
+        user_id=0,
+        employment_status="취업 완료",
+        desired_position="백엔드 개발자",
+        company_id=0,
+        # Date 타입에 맞게 date 객체로 수정
+        work_start_date=date(2025, 7, 1),
+        # Date 타입에 저장할 수 없는 문자열 "없음"을 None으로 수정
+        work_end_date=None, 
+    )
+
+    # exp1 = Experience(
+    #     id=0,
+    #     user_id=0,
+    #     type="project",
+    #     name="프로젝트 테스트",
+    #     description="테스트",
+    #     skills="react, nestjs, flask",
+    #     url="http://127.0.0.1",
+    # )
+    # exp2 = Experience(
+    #     id=1,
+    #     user_id=0,
+    #     type="experience",
+    #     date=date(2025, 7, 10),
+    #     name="서울디지텍고 해커톤",
+    #     description="테스트",
+    # )
+    # exp3 = Experience(
+    #     id=2,
+    #     user_id=0,
+    #     type="award",
+    #     date=date(2025, 7, 10),
+    #     name="서울디지텍고 해커톤 - 대상",
+    #     description="서울디지텍고등학교",
+    # )
 
     db.session.add_all(
         [
             company,
             user,
             user_company,
-            exp1,
-            exp2,
-            exp3,
+            # exp1,
+            # exp2,
+            # exp3,
             job_info,
             application,
             present_company,

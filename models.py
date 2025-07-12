@@ -22,12 +22,18 @@ class User(db.Model):
 class UserCompany(db.Model):
     __tablename__ = 'user_company'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
+    # onDelete: 'CASCADE' 반영
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), unique=True)
     employment_status = db.Column(db.String(50))
     desired_position = db.Column(db.String(100))
-    company_id = db.Column(db.Integer, db.ForeignKey('company_information.id'), nullable=True)
+    # onDelete: 'CASCADE' 반영
+    company_id = db.Column(db.Integer, db.ForeignKey('company_information.id', ondelete='CASCADE'), nullable=True)
+    # TypeORM의 'date' 타입과 nullable=true 속성 반영
     work_start_date = db.Column(db.Date, nullable=True)
     work_end_date = db.Column(db.Date, nullable=True)
+
+    # TypeORM의 @ManyToOne 관계를 반영
+    company = db.relationship("CompanyInformation", backref="user_companies")
 
 class Experience(db.Model):
     __tablename__ = 'user_experience'
@@ -56,6 +62,7 @@ class CompanyInformation(db.Model):
 
     jobs = db.relationship('JobInformation', backref='company', cascade="all, delete-orphan")
     present = db.relationship('PresentCompany', backref='company', cascade="all, delete-orphan")
+    # user_companies backref는 UserCompany의 relationship에 의해 자동 생성됩니다.
 
 class JobInformation(db.Model):
     __tablename__ = 'job_information'
