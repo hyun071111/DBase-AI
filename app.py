@@ -9,27 +9,27 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 from datetime import datetime
 
+# [수정] Gemini 라이브러리 임포트
+import google.generativeai as genai
+
 load_dotenv()
 
 from models import db, CompanyInformation, JobInformation
 
-torch_import = True
-try:
-    import torch
-    from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-except ImportError:
-    torch_import = False
-    print("Warning: torch or transformers not found. LLM features will be disabled.")
+# [삭제] torch 및 transformers 관련 임포트 삭제
 
 
 # ---------- 전역 확장 및 설정 변수 ----------
 migrate = Migrate()
-llm_pipeline = None
+gemini_model = None  # [수정] llm_pipeline 대신 gemini_model 변수 사용
 
+# 환경 변수에서 설정 값 로드
 DB_URL = os.getenv("DATABASE_URL")
 SERPER_KEY = os.getenv("SERPER_API_KEY")
-MODEL_ID = os.getenv("MODEL_ID", "sh2orc/Llama-3.1-Korean-8B-Instruct")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # [추가] Gemini API 키 로드
 SERPER_URL = "https://google.serper.dev/search"
+
+# [삭제] MODEL_ID 변수 삭제
 
 SCRIPT_PATH = os.path.abspath(__file__)
 AI_DIR = os.path.dirname(SCRIPT_PATH)
@@ -110,9 +110,9 @@ def create_app():
     """Flask 애플리케이션 인스턴스를 생성하고 설정합니다."""
     app = Flask(__name__)
 
-    if not DB_URL or not SERPER_KEY:
+    if not DB_URL or not SERPER_KEY or not GEMINI_API_KEY:
         raise ValueError(
-            "필수 환경 변수(DATABASE_URL, SERPER_API_KEY)가 .env 파일에 설정되지 않았습니다."
+            "필수 환경 변수(DATABASE_URL, SERPER_API_KEY, GEMINI_API_KEY)가 .env 파일에 설정되지 않았습니다."
         )
 
     app.config["SQLALCHEMY_DATABASE_URI"] = DB_URL
@@ -122,30 +122,16 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
-    global llm_pipeline
-    if torch_import and SERPER_KEY:
-        try:
-            tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-            model = AutoModelForCausalLM.from_pretrained(
-                MODEL_ID,
-                device_map="auto" if torch.cuda.is_available() else "cpu",
-                torch_dtype=(
-                    torch.float16 if torch.cuda.is_available() else torch.float32
-                ),
-                low_cpu_mem_usage=True,
-            )
-            llm_pipeline = pipeline(
-                "text-generation",
-                model=model,
-                tokenizer=tokenizer,
-                max_new_tokens=400,
-                do_sample=True,
-                temperature=0.6,
-            )
-            print("--- INFO: LLM 파이프라인 로딩 성공.")
-        except Exception as e:
-            print(f"--- ERROR: LLM 파이프라인 로딩 실패: {e}")
-            llm_pipeline = None
+    # [수정] Gemini 모델 설정
+    global gemini_model
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        # 빠르고 효율적인 모델인 'gemini-1.5-flash-latest' 사용
+        gemini_model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        print("--- INFO: Gemini 모델 설정 성공.")
+    except Exception as e:
+        print(f"--- ERROR: Gemini 모델 설정 실패: {e}")
+        gemini_model = None
 
     @app.route("/api/process-pdf", methods=["POST"])
     def process_pdf_api():
@@ -229,11 +215,23 @@ def create_app():
                 "\n\n".join(search_results[:5]) if search_results else "검색 결과 없음"
             )
 
-            ai_analysis_result = "LLM 미설정 또는 회사명 누락으로 AI 분석을 건너뜁니다."
-            if llm_pipeline and info.get("company_name"):
-                llm_prompt = f"다음 정보를 바탕으로 '{info['company_name']}'의 기업 분석 보고서를 작성해줘. 회사의 주력 사업, 사용하는 기술, 성장 가능성에 초점을 맞춰 전문가 관점에서 간결하게 400자 내외로 요약해줘. 불필요한 인사말이나 서론은 제외하고 핵심 내용만 포함해줘.\n\n## 추출 정보:\n- 주요 사업: {info.get('main_business', 'N/A')}\n- 모집 직종: {info.get('job_category', 'N/A')}\n- 필요 기술/자격: {info.get('qualifications', 'N/A')}\n\n## 웹 검색 결과 요약:\n{search_summary}\n\n## 기업 분석 보고서:"
-                ai_result = llm_pipeline(llm_prompt, return_full_text=False)
-                ai_analysis_result = ai_result[0]["generated_text"].strip()
+            ai_analysis_result = (
+                "Gemini 미설정 또는 회사명 누락으로 AI 분석을 건너뜁니다."
+            )
+            # [수정] Gemini 모델 호출
+            if gemini_model and info.get("company_name"):
+                llm_prompt = f"다음 정보를 바탕으로 '{info['company_name']}'의 기업 분석 보고서를 작성해줘. 회사의 주력 사업, 사용하는 기술, 성장 가능성에 초점을 맞춰 전문가 관점에서 간결하게 400자 내외로 요약해줘. 불필요한 인사말이나 마크다운 문법 제외하고 핵심 내용만 포함해줘.\n\n## 추출 정보:\n- 주요 사업: {info.get('main_business', 'N/A')}\n- 모집 직종: {info.get('job_category', 'N/A')}\n- 필요 기술/자격: {info.get('qualifications', 'N/A')}\n\n## 웹 검색 결과 요약:\n{search_summary}\n\n## 기업 분석 보고서:"
+                try:
+                    generation_config = genai.types.GenerationConfig(
+                        temperature=0.6, max_output_tokens=400
+                    )
+                    response = gemini_model.generate_content(
+                        llm_prompt, generation_config=generation_config
+                    )
+                    ai_analysis_result = response.text.strip()
+                except Exception as e:
+                    print(f"--- ERROR: Gemini API 호출 실패: {e}")
+                    ai_analysis_result = "Gemini API 호출 중 오류가 발생했습니다."
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(f"[{timestamp}] --- [DEBUG] AI 분석 결과 ---")
@@ -298,14 +296,12 @@ def create_app():
             )
             db.session.add(job_posting)
 
-            # --- [중요] DB 저장 직전 데이터 로깅 ---
             company_data_to_save = {
                 k: v for k, v in company.__dict__.items() if not k.startswith("_")
             }
             job_data_to_save = {
                 k: v for k, v in job_posting.__dict__.items() if not k.startswith("_")
             }
-
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(f"[{timestamp}] --- [COMMIT] 데이터베이스에 저장될 최종 데이터 ---")
             print("\n[COMMIT] CompanyInformation:")
