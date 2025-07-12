@@ -10,7 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(191), unique=True, nullable=False)
     phone_number = db.Column(db.String(191), unique=True, nullable=True)
     address = db.Column(db.String(191), nullable=True)
-    category = db.Column(db.String(191), nullable=False)  # role in TypeORM
+    category = db.Column(db.String(191), nullable=False)
     affiliation = db.Column(db.String(191), nullable=True)
     skills = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.BigInteger, nullable=False)
@@ -22,12 +22,14 @@ class User(db.Model):
 class UserCompany(db.Model):
     __tablename__ = 'user_company'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), unique=True)
     employment_status = db.Column(db.String(50))
     desired_position = db.Column(db.String(100))
-    company_id = db.Column(db.Integer, db.ForeignKey('company_information.id'), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company_information.id', ondelete='CASCADE'), nullable=True)
     work_start_date = db.Column(db.Date, nullable=True)
     work_end_date = db.Column(db.Date, nullable=True)
+
+    company = db.relationship("CompanyInformation", backref="user_companies")
 
 class Experience(db.Model):
     __tablename__ = 'user_experience'
@@ -45,7 +47,7 @@ class CompanyInformation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer)
     company_name = db.Column(db.String(255), unique=True)
-    deadline = db.Column(db.String(255), nullable=True)  # Changed to String to match TypeORM
+    deadline = db.Column(db.String(255), nullable=True)
     establishment_year = db.Column(db.Integer)
     business_type = db.Column(db.String(255))
     employee_count = db.Column(db.Integer)
@@ -79,8 +81,8 @@ class ApplicationStatus(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     job_id = db.Column(db.Integer, db.ForeignKey('job_information.id'))
     status = db.Column(db.String(50), default='미확인')
-    feedback = db.Column(db.Text, nullable=True)  
-    
+    feedback = db.Column(db.Text, nullable=True)
+
 class PresentCompany(db.Model):
     __tablename__ = 'present_company'
     id = db.Column(db.Integer, primary_key=True)
