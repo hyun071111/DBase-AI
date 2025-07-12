@@ -1,6 +1,6 @@
 import os
 from app import create_app
-from models import db, User, UserCompany, Token, Experience, CompanyInformation, JobInformation, ApplicationStatus, PresentCompany
+from models import db, User, UserCompany, Experience, CompanyInformation, JobInformation, ApplicationStatus, PresentCompany
 
 app = create_app()
 
