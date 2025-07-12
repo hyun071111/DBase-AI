@@ -25,7 +25,7 @@ db.init_app(app)
 with app.app_context():
     # Create tables if they don't exist
     db.create_all()
-    
+
     company = CompanyInformation(
         id=0,
         year=2025,
@@ -39,7 +39,7 @@ with app.app_context():
         address="서울시 용산구 회나무로12길 27",
         ai_analysis="회사 테스트입니다.",
     )
-    
+
     job_info = JobInformation(
         id=0,
         company_id=0,
@@ -53,7 +53,6 @@ with app.app_context():
         salary="연봉 2500만",
         additional_requirements="테스트입니다",
     )
-
 
     application = ApplicationStatus(id=0, user_id=0, job_id=0, status="미확인")
 
@@ -69,12 +68,11 @@ with app.app_context():
         skills="python, javascript, linux",
         created_at=int(time.time() * 1000),
     )
-    
+
     present_company = PresentCompany(
         id=0,
         company_id=company.id,
     )
-
 
     user_company = UserCompany(
         id=0,
@@ -85,7 +83,7 @@ with app.app_context():
         # Date 타입에 맞게 date 객체로 수정
         work_start_date=date(2025, 7, 1),
         # Date 타입에 저장할 수 없는 문자열 "없음"을 None으로 수정
-        work_end_date=None, 
+        work_end_date=None,
     )
 
     # exp1 = Experience(
