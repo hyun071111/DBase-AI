@@ -67,7 +67,6 @@ class JobInformation(db.Model):
     qualifications = db.Column(db.Text)
     working_hours = db.Column(db.Text)
     work_type = db.Column(db.Text)
-    required_documents = db.Column(db.Text) 
     internship_pay = db.Column(db.String(100))
     salary = db.Column(db.String(100))
     additional_requirements = db.Column(db.Text)
