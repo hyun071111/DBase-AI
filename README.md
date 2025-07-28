@@ -1,6 +1,6 @@
 # DBase-AI 🤖
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.2.5-000000?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 [![Transformers](https://img.shields.io/badge/🤗%20Transformers-4.29-FFD21E?style=for-the-badge&logo=huggingface)](https://huggingface.co/docs/transformers/index)
