@@ -1,11 +1,17 @@
 # DBase-AI 🤖
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.2.5-000000?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 [![Transformers](https://img.shields.io/badge/🤗%20Transformers-4.29-FFD21E?style=for-the-badge&logo=huggingface)](https://huggingface.co/docs/transformers/index)
 
 **DBase-AI**는 서울디지털고등학교에 접수되는 기업 채용 의뢰서(PDF)를 자동으로 분석하는 파이썬 기반 API 서버입니다. PDF 파일의 내용을 파싱하여 정형화된 데이터를 추출하고, 외부 웹 검색 및 LLM(거대 언어 모델)을 활용하여 기업의 핵심 비즈니스와 성장 가능성을 심층 분석합니다. 분석된 모든 데이터는 데이터베이스에 체계적으로 저장되어 관리 및 활용의 편의성을 높입니다.
+
+## 중요! 
+**본인이 AI를 돌릴 수 없는 환경일 시, GPT API를 활용하여 실행할 수 있는 브랜치는 따로 있습니다.**
+```bash
+git clone --branch distribution  https://github.com/hyun071111/DBase-AI.git
+```
 
 
 ## 📖 프로젝트 개요 (Project Overview)
@@ -51,17 +57,39 @@ cd DBase-AI
 ```
 
 #### 3. 가상환경 설정 및 패키지 설치
+### 환경설정
+macOS 또는 Linux
+```
+# On macOS and Linux.
+curl -LsSf https://astral.sh/uv/install.sh | sh
+또는 
+brew install uv
+```
+windows
+```aiignore
+# On Windows.
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+PyPI로 설치
+```
+# With pip.
+pip install uv
+
+# Or pipx.
+pipx install uv
+
+# uv 강제 설치
+pip install uv --break-system-packages
+```
+
+가상환경 설정
 ```bash
-# 가상환경 생성
-python -m venv venv
+uv venv --python 3.11.0
+```
 
-# 가상환경 활성화 (Windows)
-.\venv\Scripts\activate
-# 가상환경 활성화 (macOS/Linux)
-source venv/bin/activate
-
-# 필수 패키지 설치
-pip install -r requirements.txt
+requirements 설치
+```bash
+uv pip install requirements.txt
 
 # 안될경우
 python -X utf8=1 -m pip install -r requirements.txt
