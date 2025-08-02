@@ -47,7 +47,7 @@ git clone --branch distribution  https://github.com/hyun071111/DBase-AI.git
 ## ⚙️ 설치 및 실행 가이드 (Installation & Setup)
 
 #### 1. 사전 요구사항
--   Python 3.9 이상
+-   Python 3.11 이상
 -   Git
 -   PostgreSQL 데이터베이스 서버
 
