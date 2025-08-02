@@ -1,0 +1,7 @@
+ATABASE_URL="postgresql://[사용자명]:[비밀번호]@[호스트]:[포트]/[데이터베이스명]"
+
+SERPER_API_KEY="Google Serper API 키"
+
+MODEL_ID="Hugging Face 모델 ID"
+# or
+OPENAI_API_KEY="OpenAI API 키"
