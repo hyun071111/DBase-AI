@@ -2,8 +2,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/🧪%20uv-0.8.4-FF6F00?style=for-the-badge&logo=python)](https://pypi.org/project/uv/)
-[![Flask](https://img.shields.io/badge/Flask-2.2.5-000000?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.1.1-000000?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 [![Transformers](https://img.shields.io/badge/🤗%20Transformers-4.29-FFD21E?style=for-the-badge&logo=huggingface)](https://huggingface.co/docs/transformers/index)
 
 **DBase-AI**는 서울디지텍고등학교에 접수되는 기업 채용 의뢰서(PDF)를 자동으로 분석하는 파이썬 기반 API 서버입니다. PDF 파일의 내용을 파싱하여 정형화된 데이터를 추출하고, 외부 웹 검색 및 LLM(거대 언어 모델)을 활용하여 기업의 핵심 비즈니스와 성장 가능성을 심층 분석합니다. 분석된 모든 데이터는 데이터베이스에 체계적으로 저장되어 관리 및 활용의 편의성을 높입니다.
